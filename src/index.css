@@ -1,0 +1,244 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO — BUTLER DIGITAL
+   ═══════════════════════════════════════════════════════════════════
+
+   ¿Por qué CSS custom properties (variables) y no Tailwind?
+   Tailwind es excelente para prototipado rápido, pero para un diseño
+   tan específico (paleta exacta, tipografías custom, animaciones finas),
+   las CSS variables dan más control y son más performantes:
+   - Tailwind genera miles de clases CSS en el bundle
+   - CSS variables se actualizan en runtime sin re-renders de React
+   - Los temas (dark/light) se cambian con una sola variable
+
+   ¿Por qué no styled-components o emotion (CSS-in-JS)?
+   CSS-in-JS agrega overhead de runtime (parseo de strings CSS en JS).
+   Para animaciones, el browser optimiza CSS puro mejor que CSS generado por JS.
+   Además, CSS puro funciona con Framer Motion sin conflictos.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── TOKENS DE DISEÑO ─────────────────────────────────────────────── */
+:root {
+  /* Paleta principal — inspirada en hoteles de lujo y salones victorianos */
+  --color-void: #060608;         /* El negro más profundo — fondo base */
+  --color-obsidian: #0d0d0f;     /* Fondo de cards */
+  --color-graphite: #141416;     /* Superficies elevadas */
+  --color-slate: #1c1c20;        /* Bordes sutiles */
+  --color-mist: #2a2a30;         /* Divisores */
+  --color-ash: #4a4a55;          /* Texto deshabilitado */
+  --color-stone: #7a7a8a;        /* Texto secundario */
+  --color-pearl: #c8c8d8;        /* Texto primario */
+  --color-cream: #f0ebe0;        /* Texto de énfasis */
+
+  /* Dorados — el acento de lujo */
+  --color-gold-deep: #8b6914;    /* Dorado oscuro — sombras de acento */
+  --color-gold: #c9a96e;         /* Dorado principal */
+  --color-gold-light: #e2c48a;   /* Dorado brillante — hover states */
+  --color-gold-pale: #f5e8cc;    /* Dorado muy claro — texto sobre dorado */
+
+  /* Estados semánticos */
+  --color-danger: #c0392b;
+  --color-danger-soft: rgba(192, 57, 43, 0.15);
+  --color-warning: #d4ac0d;
+  --color-warning-soft: rgba(212, 172, 13, 0.15);
+  --color-success: #1e8449;
+  --color-success-soft: rgba(30, 132, 73, 0.15);
+
+  /* Tipografía */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+
+  /* Espaciado — escala de 4px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Sombras con tono dorado — aportan la sensación de "profundidad de lujo" */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-gold: 0 0 20px rgba(201, 169, 110, 0.12);
+  --shadow-gold-sm: 0 0 8px rgba(201, 169, 110, 0.2);
+
+  /* Transiciones — todas las animaciones deben sentirse "pesadas" y deliberadas */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ── RESET MODERNO ────────────────────────────────────────────────── */
+/* ¿Por qué este reset y no normalize.css?
+   Normalize preserva los estilos del browser con opinionadas decisiones.
+   Este reset minimalista elimina inconsistencias sin sobrecomplicar. */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;  /* Evita que iOS cambie el font-size al rotar */
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-void);
+  color: var(--color-pearl);
+  line-height: 1.6;
+  min-height: 100dvh;              /* dvh = dynamic viewport height — correcto en móvil */
+  overflow-x: hidden;
+
+  /* Textura de fondo sutil — aporta profundidad sin distraer */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(201, 169, 110, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(201, 169, 110, 0.02) 0%, transparent 50%);
+}
+
+/* ── TIPOGRAFÍA BASE ──────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--color-cream);
+  line-height: 1.2;
+}
+
+p { color: var(--color-pearl); }
+
+a {
+  color: var(--color-gold);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover { color: var(--color-gold-light); }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: var(--font-body);
+}
+
+/* ── SCROLLBAR ELEGANTE ───────────────────────────────────────────── */
+/* La scrollbar por defecto es fea en Windows. Personalizarla es el detalle
+   que separa una app buena de una app premium. */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-obsidian);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-mist);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-deep);
+}
+
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: var(--color-mist) var(--color-obsidian); }
+
+/* ── SELECCIÓN DE TEXTO ───────────────────────────────────────────── */
+::selection {
+  background: rgba(201, 169, 110, 0.25);
+  color: var(--color-cream);
+}
+
+/* ── LAYOUT PRINCIPAL ─────────────────────────────────────────────── */
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── UTILIDADES ───────────────────────────────────────────────────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+
+/* Línea decorativa dorada — usada como separador elegante */
+.gold-rule {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  margin: var(--space-4) auto;
+}
+
+/* Glow dorado sutil para elementos de acento */
+.gold-glow {
+  box-shadow: var(--shadow-gold);
+}
+
+/* ── ANIMACIONES GLOBALES ─────────────────────────────────────────── */
+/* Estas keyframes son para elementos que Framer Motion no maneja (ej: SVGs) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 8px rgba(201, 169, 110, 0.2); }
+  50%       { box-shadow: 0 0 20px rgba(201, 169, 110, 0.5); }
+}
+
+/* Loading skeleton — mientras se cargan los datos de IndexedDB */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-slate) 25%,
+    var(--color-mist) 50%,
+    var(--color-slate) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── FOCUS VISIBLE ────────────────────────────────────────────────── */
+/* Accesibilidad: el outline de focus debe ser visible para usuarios de teclado
+   pero no molestar a los que usan mouse. :focus-visible hace exactamente eso. */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ── MOBILE SAFE AREAS ────────────────────────────────────────────── */
+/* En iPhones con notch/Dynamic Island, el contenido no debe quedar tapado */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
