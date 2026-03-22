@@ -1,0 +1,411 @@
+// AuthPage — La pantalla de login/registro con estética del mayordomo.
+// ¿Por qué un componente "Page" en lugar de un modal?
+// El login es un estado completamente diferente de la app — el usuario NO debe
+// ver la lista de recordatorios mientras no está autenticado. Una página completa
+// deja claro que se requiere autenticación antes de continuar.
+// Un modal sobre la app principal filtraría información y daría falsa sensación
+// de acceso.
+
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Mail, Lock, Eye, EyeOff, Crown, Loader2 } from 'lucide-react'
+import { useAuthStore } from '@/stores/useAuthStore'
+
+type AuthMode = 'signin' | 'signup'
+
+export function AuthPage() {
+  const [mode, setMode] = useState<AuthMode>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [signUpDone, setSignUpDone] = useState(false)
+
+  const { signIn, signUp, isLoading, error, clearError } = useAuthStore()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) return
+
+    if (mode === 'signin') {
+      await signIn(email, password)
+    } else {
+      await signUp(email, password)
+      // Si no hubo error, mostrar mensaje de confirmación
+      if (!useAuthStore.getState().error) {
+        setSignUpDone(true)
+      }
+    }
+  }
+
+  const switchMode = (newMode: AuthMode) => {
+    setMode(newMode)
+    clearError()
+    setSignUpDone(false)
+  }
+
+  return (
+    <div style={styles.page}>
+      {/* Fondo con gradiente sutil */}
+      <div style={styles.bgGradient} />
+
+      <motion.div
+        style={styles.card}
+        initial={{ opacity: 0, y: 30, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      >
+        {/* Header del mayordomo */}
+        <div style={styles.header}>
+          <motion.div
+            style={styles.logoWrapper}
+            animate={{ boxShadow: ['0 0 10px rgba(201,169,110,0.2)', '0 0 25px rgba(201,169,110,0.4)', '0 0 10px rgba(201,169,110,0.2)'] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            <Crown size={22} strokeWidth={1.5} style={{ color: 'var(--color-gold)' }} />
+          </motion.div>
+
+          <h1 style={styles.title}>Butler</h1>
+          <p style={styles.subtitle}>Mayordomo Digital</p>
+
+          <div className="gold-rule" style={{ margin: '16px auto' }} />
+
+          <p style={styles.tagline}>
+            {mode === 'signin'
+              ? 'Bienvenido de regreso, señor.'
+              : 'Es un honor tenerle como nuevo cliente.'
+            }
+          </p>
+        </div>
+
+        {/* Tabs signin / signup */}
+        <div style={styles.tabs}>
+          {(['signin', 'signup'] as AuthMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => switchMode(m)}
+              style={{ ...styles.tab, ...(mode === m ? styles.tabActive : {}) }}
+            >
+              {m === 'signin' ? 'Iniciar sesión' : 'Registrarse'}
+            </button>
+          ))}
+        </div>
+
+        {/* Mensaje de confirmación de registro */}
+        <AnimatePresence mode="wait">
+          {signUpDone ? (
+            <motion.div
+              key="confirm"
+              style={styles.successBox}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#2ecc71' }}>
+                ✓ Registro exitoso. Revise su correo electrónico y confirme su cuenta para continuar.
+              </p>
+            </motion.div>
+          ) : (
+            <motion.form
+              key="form"
+              onSubmit={handleSubmit}
+              style={styles.form}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {/* Campo Email */}
+              <div style={styles.fieldWrapper}>
+                <label style={styles.label}>Correo electrónico</label>
+                <div style={styles.inputWrapper}>
+                  <Mail size={15} strokeWidth={1.5} style={styles.inputIcon} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); clearError() }}
+                    placeholder="correo@ejemplo.com"
+                    style={styles.input}
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Campo Contraseña */}
+              <div style={styles.fieldWrapper}>
+                <label style={styles.label}>Contraseña</label>
+                <div style={styles.inputWrapper}>
+                  <Lock size={15} strokeWidth={1.5} style={styles.inputIcon} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); clearError() }}
+                    placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
+                    style={{ ...styles.input, paddingRight: '44px' }}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    required
+                    minLength={6}
+                  />
+                  {/* Toggle visibilidad contraseña */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    style={styles.eyeButton}
+                    tabIndex={-1}
+                  >
+                    {showPassword
+                      ? <EyeOff size={14} strokeWidth={1.5} />
+                      : <Eye size={14} strokeWidth={1.5} />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Error message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    style={styles.errorMsg}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {/* Submit button */}
+              <motion.button
+                type="submit"
+                disabled={isLoading || !email || !password}
+                style={{
+                  ...styles.submitBtn,
+                  ...(isLoading || !email || !password ? styles.submitBtnDisabled : {})
+                }}
+                whileHover={!isLoading ? { scale: 1.01 } : {}}
+                whileTap={!isLoading ? { scale: 0.99 } : {}}
+              >
+                {isLoading ? (
+                  <motion.div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Loader2 size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Un momento...</span>
+                  </motion.div>
+                ) : (
+                  mode === 'signin' ? 'Entrar' : 'Crear cuenta'
+                )}
+              </motion.button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+
+        {/* Footer */}
+        <p style={styles.footer}>
+          Butler · Mayordomo Digital
+        </p>
+      </motion.div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input::placeholder { color: var(--color-ash); }
+        input:focus { outline: none; }
+      `}</style>
+    </div>
+  )
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: '100dvh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px 16px',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  bgGradient: {
+    position: 'fixed',
+    inset: 0,
+    background: `
+      radial-gradient(ellipse at 30% 40%, rgba(201,169,110,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 70%, rgba(201,169,110,0.04) 0%, transparent 50%)
+    `,
+    pointerEvents: 'none',
+  },
+  card: {
+    width: '100%',
+    maxWidth: '400px',
+    background: 'var(--color-obsidian)',
+    border: '1px solid rgba(201,169,110,0.2)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '40px 32px 28px',
+    boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,169,110,0.08)',
+    position: 'relative',
+    zIndex: 1,
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '28px',
+  },
+  logoWrapper: {
+    width: '52px',
+    height: '52px',
+    borderRadius: '14px',
+    background: 'linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))',
+    border: '1px solid rgba(201,169,110,0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 14px',
+  },
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '28px',
+    fontWeight: 600,
+    color: 'var(--color-cream)',
+    letterSpacing: '0.04em',
+    lineHeight: 1,
+  },
+  subtitle: {
+    fontSize: '11px',
+    fontWeight: 300,
+    color: 'var(--color-gold)',
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase',
+    marginTop: '4px',
+  },
+  tagline: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '14px',
+    fontStyle: 'italic',
+    color: 'var(--color-stone)',
+    lineHeight: 1.5,
+  },
+  tabs: {
+    display: 'flex',
+    background: 'var(--color-graphite)',
+    borderRadius: 'var(--radius-md)',
+    padding: '3px',
+    marginBottom: '24px',
+    border: '1px solid var(--color-slate)',
+  },
+  tab: {
+    flex: 1,
+    padding: '8px',
+    borderRadius: '9px',
+    fontSize: '13px',
+    fontWeight: 400,
+    color: 'var(--color-stone)',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
+    fontFamily: 'var(--font-body)',
+  },
+  tabActive: {
+    background: 'rgba(201,169,110,0.12)',
+    color: 'var(--color-gold)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  fieldWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  label: {
+    fontSize: '12px',
+    color: 'var(--color-stone)',
+    letterSpacing: '0.05em',
+    fontWeight: 400,
+  },
+  inputWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: '13px',
+    color: 'var(--color-ash)',
+    pointerEvents: 'none',
+    flexShrink: 0,
+  } as React.CSSProperties,
+  input: {
+    width: '100%',
+    background: 'var(--color-graphite)',
+    border: '1px solid var(--color-slate)',
+    borderRadius: 'var(--radius-md)',
+    padding: '11px 14px 11px 40px',
+    color: 'var(--color-cream)',
+    fontSize: '14px',
+    fontFamily: 'var(--font-body)',
+    fontWeight: 300,
+    transition: 'border-color var(--transition-fast)',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: '12px',
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--color-ash)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '4px',
+  } as React.CSSProperties,
+  errorMsg: {
+    fontSize: '12px',
+    color: '#e74c3c',
+    background: 'rgba(192,57,43,0.1)',
+    border: '1px solid rgba(192,57,43,0.25)',
+    borderRadius: 'var(--radius-md)',
+    padding: '10px 12px',
+    lineHeight: 1.5,
+    overflow: 'hidden',
+  },
+  successBox: {
+    background: 'rgba(30,132,73,0.1)',
+    border: '1px solid rgba(30,132,73,0.3)',
+    borderRadius: 'var(--radius-md)',
+    padding: '16px',
+    marginBottom: '8px',
+  },
+  submitBtn: {
+    padding: '13px',
+    borderRadius: 'var(--radius-md)',
+    background: 'linear-gradient(135deg, var(--color-gold), #a07820)',
+    color: '#0a0a0a',
+    fontSize: '14px',
+    fontWeight: 600,
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
+    letterSpacing: '0.03em',
+    transition: 'all var(--transition-fast)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 16px rgba(201,169,110,0.3)',
+    marginTop: '4px',
+  },
+  submitBtnDisabled: {
+    background: 'var(--color-slate)',
+    color: 'var(--color-ash)',
+    cursor: 'not-allowed',
+    boxShadow: 'none',
+  },
+  footer: {
+    textAlign: 'center',
+    fontSize: '11px',
+    color: 'var(--color-ash)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    marginTop: '24px',
+    letterSpacing: '0.05em',
+  },
+}

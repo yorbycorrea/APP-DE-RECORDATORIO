@@ -4,15 +4,17 @@
 // su propio archivo, y al separarlo, el componente App.tsx queda más limpio.
 
 import { motion } from 'framer-motion'
-import { Bell, BellOff, Crown } from 'lucide-react'
+import { Bell, BellOff, Crown, LogOut } from 'lucide-react'
 import { getNotificationPermission, requestNotificationPermission } from '@/services/notifications'
 import { useState, useEffect } from 'react'
 import { useReminderStore } from '@/stores/useReminderStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 export function ButlerHeader() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const pending = useReminderStore(state => state.getPending())
   const overdue = useReminderStore(state => state.getOverdue())
+  const { user, signOut } = useAuthStore()
 
   useEffect(() => {
     setPermission(getNotificationPermission())
@@ -78,17 +80,26 @@ export function ButlerHeader() {
           onClick={handleRequestPermission}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          title={
-            permission === 'granted'
-              ? 'Notificaciones activas'
-              : 'Activar notificaciones'
-          }
+          title={permission === 'granted' ? 'Notificaciones activas' : 'Activar notificaciones'}
         >
           {permission === 'granted'
             ? <Bell size={16} strokeWidth={1.5} />
             : <BellOff size={16} strokeWidth={1.5} />
           }
         </motion.button>
+
+        {/* Logout — solo visible si hay sesión activa */}
+        {user && (
+          <motion.button
+            style={styles.logoutButton}
+            onClick={signOut}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={`Cerrar sesión (${user.email})`}
+          >
+            <LogOut size={15} strokeWidth={1.5} />
+          </motion.button>
+        )}
       </div>
 
       {/* Saludo del mayordomo */}
@@ -212,6 +223,20 @@ const styles: Record<string, React.CSSProperties> = {
   notifDefault: {
     background: 'var(--color-obsidian)',
     color: 'var(--color-stone)',
+  },
+  logoutButton: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '10px',
+    border: '1px solid var(--color-slate)',
+    background: 'var(--color-obsidian)',
+    color: 'var(--color-stone)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
+    flexShrink: 0,
   },
   greeting: {
     maxWidth: '680px',
