@@ -22,6 +22,7 @@ interface AuthStore {
   signUp: (email: string, password: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
+  signInWithGitHub: () => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -116,6 +117,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (error) throw error
       // Si no hay error, el browser fue redirigido a Google.
       // onAuthStateChange manejará el estado cuando Google redirija de vuelta.
+    } catch (err) {
+      set({ error: getAuthErrorMessage(err as AuthError), isLoading: false })
+    }
+  },
+
+  signInWithGitHub: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: window.location.origin,
+        }
+      })
+      if (error) throw error
     } catch (err) {
       set({ error: getAuthErrorMessage(err as AuthError), isLoading: false })
     }
