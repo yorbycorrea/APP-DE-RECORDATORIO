@@ -15,6 +15,7 @@ import { Check, X, Trash2, Clock, AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { useReminderStore } from '@/stores/useReminderStore'
 import { formatDateTime, formatRelativeTime } from '@/utils/parseDate'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import type { Reminder } from '@/types/reminder'
 
 interface Props {
@@ -28,6 +29,9 @@ export function ReminderCard({ reminder, index }: Props) {
   const [isHovered, setIsHovered] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { markDone, markDismissed, deleteReminder } = useReminderStore()
+  const isMobile = useIsMobile()
+  // En móvil los botones son siempre visibles (no hay hover) y más grandes
+  const btnSize = isMobile ? 36 : 28
 
   const isOverdue = reminder.status === 'pending' && reminder.datetime < Date.now()
   const isDone = reminder.status === 'done'
@@ -128,31 +132,29 @@ export function ReminderCard({ reminder, index }: Props) {
       {/* Acciones — visibles siempre en mobile, en hover en desktop */}
       <motion.div
         style={styles.actions}
-        animate={{ opacity: isHovered || isCompleted ? 1 : 0.3 }}
+        animate={{ opacity: isMobile || isHovered || isCompleted ? 1 : 0.3 }}
         transition={{ duration: 0.15 }}
       >
         {!isCompleted ? (
           <>
-            {/* Botón completar */}
             <motion.button
-              style={{ ...styles.actionBtn, ...styles.actionDone }}
+              style={{ ...styles.actionBtn, ...styles.actionDone, width: btnSize, height: btnSize }}
               onClick={() => markDone(reminder.id)}
               whileHover={{ scale: 1.1, backgroundColor: 'rgba(30,132,73,0.3)' }}
               whileTap={{ scale: 0.9 }}
               title="Marcar como completado"
             >
-              <Check size={13} strokeWidth={2.5} />
+              <Check size={isMobile ? 15 : 13} strokeWidth={2.5} />
             </motion.button>
 
-            {/* Botón descartar */}
             <motion.button
-              style={{ ...styles.actionBtn, ...styles.actionDismiss }}
+              style={{ ...styles.actionBtn, ...styles.actionDismiss, width: btnSize, height: btnSize }}
               onClick={() => markDismissed(reminder.id)}
               whileHover={{ scale: 1.1, backgroundColor: 'rgba(201,169,110,0.2)' }}
               whileTap={{ scale: 0.9 }}
               title="Descartar"
             >
-              <X size={13} strokeWidth={2.5} />
+              <X size={isMobile ? 15 : 13} strokeWidth={2.5} />
             </motion.button>
           </>
         ) : (
@@ -165,9 +167,8 @@ export function ReminderCard({ reminder, index }: Props) {
           </span>
         )}
 
-        {/* Botón eliminar — siempre disponible */}
         <motion.button
-          style={{ ...styles.actionBtn, ...styles.actionDelete }}
+          style={{ ...styles.actionBtn, ...styles.actionDelete, width: btnSize, height: btnSize }}
           onClick={handleDelete}
           whileHover={{ scale: 1.1, backgroundColor: 'rgba(192,57,43,0.2)' }}
           whileTap={{ scale: 0.9 }}

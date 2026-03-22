@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Calendar, AlertCircle } from 'lucide-react'
 import { parseReminderText, formatDateTime } from '@/utils/parseDate'
 import { useReminderStore } from '@/stores/useReminderStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import type { ReminderPriority } from '@/types/reminder'
 
 // ¿Por qué los estilos son objetos React.CSSProperties y no clases CSS?
@@ -24,6 +25,7 @@ export function CommandInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const addReminder = useReminderStore(state => state.addReminder)
+  const isMobile = useIsMobile()
 
   // Parseamos en tiempo real mientras el usuario escribe.
   // ¿Por qué en tiempo real y no solo al hacer submit?
@@ -65,7 +67,7 @@ export function CommandInput() {
   const hasExpiredDate = parsed?.date && parsed.date <= new Date()
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, padding: isMobile ? '16px 16px' : '24px 20px' }}>
       {/* Label con efecto "mayordomo esperando instrucciones" */}
       <motion.label
         style={styles.label}
@@ -192,10 +194,16 @@ export function CommandInput() {
         )}
       </AnimatePresence>
 
-      {/* Sugerencias de ejemplo */}
+      {/* Sugerencias — scroll horizontal en móvil para no hacer wrap */}
       {!value && (
         <motion.div
-          style={styles.hints}
+          style={{
+            ...styles.hints,
+            flexWrap: isMobile ? 'nowrap' : 'wrap',
+            overflowX: isMobile ? 'auto' : 'visible',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+          } as React.CSSProperties}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 1 }}
@@ -203,7 +211,7 @@ export function CommandInput() {
           {HINTS.map((hint, i) => (
             <button
               key={i}
-              style={styles.hintChip}
+              style={{ ...styles.hintChip, flexShrink: 0 }}
               onClick={() => {
                 setValue(hint)
                 inputRef.current?.focus()

@@ -21,6 +21,7 @@ interface AuthStore {
   initialize: () => Promise<void>    // Verificar sesión existente al arrancar
   signUp: (email: string, password: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -86,6 +87,35 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       // onAuthStateChange actualizará user y session automáticamente
+    } catch (err) {
+      set({ error: getAuthErrorMessage(err as AuthError), isLoading: false })
+    }
+  },
+
+  signInWithGoogle: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      // signInWithOAuth redirige al usuario a la página de Google.
+      // ¿Por qué redirectTo?
+      // Después de que Google autentica al usuario, Supabase necesita saber
+      // a dónde redirigir de vuelta. En desarrollo es localhost, en producción
+      // es tu dominio de Vercel. window.location.origin lo detecta automáticamente.
+      // Esta URL TAMBIÉN debe estar registrada en:
+      // 1. Supabase → Authentication → URL Configuration → Redirect URLs
+      // 2. Google Cloud Console → OAuth → Authorized redirect URIs
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account', // Siempre muestra el selector de cuenta de Google
+          }
+        }
+      })
+      if (error) throw error
+      // Si no hay error, el browser fue redirigido a Google.
+      // onAuthStateChange manejará el estado cuando Google redirija de vuelta.
     } catch (err) {
       set({ error: getAuthErrorMessage(err as AuthError), isLoading: false })
     }

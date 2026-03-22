@@ -9,12 +9,14 @@ import { getNotificationPermission, requestNotificationPermission } from '@/serv
 import { useState, useEffect } from 'react'
 import { useReminderStore } from '@/stores/useReminderStore'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export function ButlerHeader() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const pending = useReminderStore(state => state.getPending())
   const overdue = useReminderStore(state => state.getOverdue())
   const { user, signOut } = useAuthStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     setPermission(getNotificationPermission())
@@ -34,7 +36,7 @@ export function ButlerHeader() {
       {/* Línea decorativa superior */}
       <div style={styles.topBorder} />
 
-      <div style={styles.inner}>
+      <div style={{ ...styles.inner, padding: isMobile ? '12px 16px 8px' : '16px 20px 8px' }}>
         {/* Logo y título */}
         <motion.div
           style={styles.brand}
@@ -43,33 +45,44 @@ export function ButlerHeader() {
           transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         >
           <div style={styles.logoWrapper}>
-            {/* Ícono de corona — símbolo de servicio de élite */}
             <Crown size={18} strokeWidth={1.5} style={{ color: 'var(--color-gold)' }} />
           </div>
           <div>
-            <h1 style={styles.title}>Butler</h1>
-            <p style={styles.subtitle}>Mayordomo Digital</p>
+            <h1 style={{ ...styles.title, fontSize: isMobile ? '18px' : '20px' }}>Butler</h1>
+            {!isMobile && <p style={styles.subtitle}>Mayordomo Digital</p>}
           </div>
         </motion.div>
 
-        {/* Stats de recordatorios */}
-        <motion.div
-          style={styles.stats}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          {overdue.length > 0 && (
-            <div style={{ ...styles.badge, ...styles.badgeDanger }}>
-              {overdue.length} vencido{overdue.length !== 1 ? 's' : ''}
-            </div>
-          )}
-          {pending.length > 0 && (
-            <div style={{ ...styles.badge, ...styles.badgePending }}>
-              {pending.length} pendiente{pending.length !== 1 ? 's' : ''}
-            </div>
-          )}
-        </motion.div>
+        {/* Stats — solo en desktop para no saturar el header en móvil */}
+        {!isMobile && (
+          <motion.div
+            style={styles.stats}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            {overdue.length > 0 && (
+              <div style={{ ...styles.badge, ...styles.badgeDanger }}>
+                {overdue.length} vencido{overdue.length !== 1 ? 's' : ''}
+              </div>
+            )}
+            {pending.length > 0 && (
+              <div style={{ ...styles.badge, ...styles.badgePending }}>
+                {pending.length} pendiente{pending.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* En móvil mostramos solo el conteo numérico compacto */}
+        {isMobile && pending.length > 0 && (
+          <div style={styles.mobileCount}>
+            {overdue.length > 0
+              ? <span style={{ color: '#e74c3c', fontSize: '12px', fontWeight: 500 }}>⚠ {overdue.length} vencido{overdue.length !== 1 ? 's' : ''}</span>
+              : <span style={{ color: 'var(--color-gold)', fontSize: '12px' }}>{pending.length} pendiente{pending.length !== 1 ? 's' : ''}</span>
+            }
+          </div>
+        )}
 
         {/* Control de notificaciones */}
         <motion.button
@@ -237,6 +250,12 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
     flexShrink: 0,
+  },
+  mobileCount: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    paddingRight: '4px',
   },
   greeting: {
     maxWidth: '680px',
