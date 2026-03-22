@@ -5,12 +5,14 @@
 // debería estar en un componente hijo.
 
 import { useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ButlerHeader } from '@/components/ButlerHeader'
 import { CommandInput } from '@/components/CommandInput'
 import { ReminderList } from '@/components/ReminderList'
 import { NotificationBanner } from '@/components/NotificationBanner'
+import { AuthPage } from '@/components/AuthPage'
 import { useReminderStore } from '@/stores/useReminderStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { registerServiceWorker, startHeartbeat } from '@/services/notifications'
 
 // ¿Por qué importamos navigator.serviceWorker aquí y no en un hook separado?
@@ -20,6 +22,12 @@ import { registerServiceWorker, startHeartbeat } from '@/services/notifications'
 
 export function App() {
   const loadReminders = useReminderStore(state => state.loadReminders)
+  const { user, isLoading: authLoading, initialize } = useAuthStore()
+
+  // Inicializar auth al montar: recupera sesión guardada en localStorage
+  useEffect(() => {
+    initialize()
+  }, [initialize])
 
   useEffect(() => {
     // Inicialización en paralelo — no bloqueamos el render por ninguna de estas
@@ -59,41 +67,65 @@ export function App() {
     }
   }, [loadReminders])
 
+  // Pantalla de carga mientras Supabase verifica la sesión guardada.
+  // ¿Por qué no mostrar directamente la AuthPage?
+  // Supabase tarda ~200ms en leer localStorage y verificar el token.
+  // Sin este estado de carga, el usuario logueado vería el login brevemente
+  // antes de ser redirigido a la app — un flash desagradable (FOUC de auth).
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <motion.div
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          style={{ fontSize: '13px', color: 'var(--color-stone)', fontFamily: 'var(--font-display)', fontStyle: 'italic', letterSpacing: '0.08em' }}
+        >
+          Un momento...
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
-    // motion.div en el root permite animar la entrada de toda la app
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}
-    >
-      <ButlerHeader />
-      <NotificationBanner />
+    <AnimatePresence mode="wait">
+      {!user ? (
+        // No autenticado → mostrar AuthPage
+        <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          <AuthPage />
+        </motion.div>
+      ) : (
+        // Autenticado → mostrar la app completa
+        <motion.div
+          key="app"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}
+        >
+          <ButlerHeader />
+          <NotificationBanner />
 
-      <main style={{ flex: 1 }}>
-        <CommandInput />
+          <main style={{ flex: 1 }}>
+            <CommandInput />
 
-        {/* Separador elegante entre input y lista */}
-        <div style={{
-          maxWidth: '680px',
-          margin: '0 auto',
-          padding: '0 20px',
-        }}>
-          <div style={{
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(201,169,110,0.15), transparent)',
-            marginBottom: '24px',
-          }} />
-        </div>
+            <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 20px' }}>
+              <div style={{
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(201,169,110,0.15), transparent)',
+                marginBottom: '24px',
+              }} />
+            </div>
 
-        <ReminderList />
-      </main>
+            <ReminderList />
+          </main>
 
-      {/* Footer minimal */}
-      <footer style={footerStyle}>
-        <span>Butler · Tu Mayordomo Digital</span>
-      </footer>
-    </motion.div>
+          <footer style={footerStyle}>
+            <span>Butler · Tu Mayordomo Digital</span>
+          </footer>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 
